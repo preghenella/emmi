@@ -14,7 +14,7 @@ NREPEAT=25
 NFRAMES=20
 EXPOSURE=5000
 
-NREPEAT_ALL=25
+NREPEAT_ALL=20
 XPOSITIONS_ALL="90200 96200" ### axis 4
 YPOSITIONS_ALL="39500 42500 45500 48500 51500" ### axis 5
 ZPOSITIONS_ALL="92600" ### axis 6
@@ -59,6 +59,8 @@ VBRKS=(51.3) ### breakdown voltage
 
 splash() {
 
+    date
+    echo
     echo " --------------------- "
     echo " EMMI MEASURE_1 SCRIPT "
     echo " --------------------- "
@@ -79,6 +81,7 @@ splash() {
     echo " LIGHTONLY: ${LIGHTONLY} "
     echo " RMRAW: ${RMRAW} "
     echo 
+    echo
     
 }
 
@@ -168,8 +171,12 @@ vbias_off() {
     echo "OP1 0;*OPC?" | nc -w1 -W1 10.0.8.10 9221 &> /dev/null
 }
 
-main() {
+measure_1() {
 
+    ### protection
+    [ -f ".started" ] && { touch .restart.detected; return; }
+    touch .started
+    
     ### splash
     splash
     
@@ -324,11 +331,15 @@ cp ${this_script} ${DDIR}/${RUNNAME}/.
 ### call main
 
 cd ${DDIR}/${RUNNAME}
-echo " --- starting new run: ${RUNNAME} "
-echo "     running from ${PWD} "
-telegram_message "starting new run: ${RUNNAME}"
-telegram_message "running from ${PWD}"
-{ time -p main; } &> measure_1.log
-telegram_message "run completed: ${RUNNAME}"
-cd -
 
+if [ ! -f ".started" ]; then
+    echo " --- starting new run: ${RUNNAME} "
+    echo "     running from ${PWD} "
+    telegram_message "starting new run: ${RUNNAME}"
+    telegram_message "running from ${PWD}"
+    { time -p measure_1; } &>> measure_1.log
+    telegram_message "run completed: ${RUNNAME}"
+else
+    echo " --- run was already started here "    
+fi
+cd -
