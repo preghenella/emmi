@@ -18,6 +18,7 @@ process_dictionary = {
     'equalize_hist'       : lambda image: emmi.process.equalize_hist(image)       ,
     'threshold_local'     : lambda image: emmi.process.threshold_local(image)     ,
     'threshold_otsu'      : lambda image: emmi.process.threshold_otsu(image)      ,
+    'denoise_nl_means'    : lambda image: emmi.process.denoise_nl_means(image)    ,
     'sobel'               : lambda image: emmi.process.sobel(image)               ,
     'canny'               : lambda image: emmi.process.canny(image)              
 }
@@ -27,6 +28,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='Process an EMMI image')
     parser.add_argument('--input', type=str, required=True, help='Input TIF filename')
     parser.add_argument('--output', type=str, required=False, help='Output TIF filename')
+    parser.add_argument('--print', type=str, required=False, help='Print PNG filename')
     parser.add_argument('--process', type=str, nargs='+', required=False, choices=process_available, help='Process image')
     parser.add_argument('--display', action='store_true', help='Display original and processed image')
     parser.add_argument('--cmap', type=str, required=False, default=None, help='Display with requested cmap')
@@ -78,6 +80,11 @@ if __name__ == "__main__":
     if args.output is not None:
         print(' --- saving output image:', args.output)
         emmi.io.save_image(args.output, image)
+            
+    if args.print is not None:
+        print(' --- print PNG image:', args.print)
+        vmin, vmax = args.vrange
+        emmi.io.print_png(args.print, image, args.cmap, vmin, vmax)
             
     if args.display:
         display(original, image, args.cmap, args.vrange)
