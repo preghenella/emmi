@@ -31,9 +31,8 @@ def build_database(pattern):
     return database
 
 def build_coordinates(database):
-    x_vals = sorted({d['x'] for d in database}, reverse=True) # if 'x' in d})
-    y_vals = sorted({d['y'] for d in database}, reverse=True) # if 'y' in d})
-#    coords = np.array( [[(y, x) for x in x_vals] for y in y_vals], dtype=int)
+    x_vals = sorted({d['x'] for d in database if 'x' in d}, reverse=True) # if 'x' in d})
+    y_vals = sorted({d['y'] for d in database if 'y' in d}, reverse=True) # if 'y' in d})
     coords = [ [ (y, x) for x in x_vals ] for y in y_vals ]
     return coords
 
