@@ -7,7 +7,8 @@ from matplotlib.gridspec import GridSpec
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--pattern', type=str, required=True, help='Wildcard pattern (e.g. \'./data/*.txt\')')
+    parser.add_argument('--input', type=str, required=True, help='Wildcard pattern (e.g. \'./data/*.txt\')')
+    parser.add_argument('--output', type=str, required=False, help='Output file tagname')
     parser.add_argument('--tags', type=str, nargs='+', required=True, help='Data tags to process')
     parser.add_argument('--display', action='store_true', help='Display stitching process')
     parser.add_argument('--final', action='store_true', help='Display final image')
@@ -96,7 +97,7 @@ if __name__ == "__main__":
     args = parse_arguments()
 
     # build database and coordinates
-    database = emmi.database.build_database(args.pattern)
+    database = emmi.database.build_database(args.input)
     coords = emmi.database.build_coordinates(database)
 
     tags = {'light'}
@@ -150,6 +151,9 @@ if __name__ == "__main__":
     for tag in tags:
         stitched_data[tag] = stitched_row_data[tag][0]
         stitched_image[tag] = stitched_data[tag][1]
+        if args.output is not None:
+            outfilename = args.output + '.data=' + tag + '.tif'
+            emmi.io.save_image(outfilename, stitched_image[tag])
         if args.final:
             fig = plt.figure(figsize=(10, 10), layout="constrained")
             plt.imshow(emmi.process.contrast_stretching(stitched_image[tag]))
