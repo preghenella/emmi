@@ -27,6 +27,11 @@ def phase_correlate(image1, image2, reference_mask=None, moving_mask=None):
     print(f'     detected subpixel offset (y, x): {shift}')
     return shift
 
+def shift_image(image, shift):
+    print(f' --- shift image with offset (y, x): {shift}')
+    image = scipy.ndimage.shift(image, shift=shift, order=1, mode='constant', cval=0.0)
+    return image
+
 def stitch_images(image1, image2, shift=None, panorama=(False,False)):
     print(f' --- stitch images with offset (y, x): {shift}')
     if shift is None:
