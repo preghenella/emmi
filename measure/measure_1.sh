@@ -15,36 +15,102 @@ NFRAMES=20
 EXPOSURE=5000
 
 NREPEAT_ALL=20
-XPOSITIONS_ALL="90200 96200" ### axis 4
-YPOSITIONS_ALL="39500 42500 45500 48500 51500" ### axis 5
-ZPOSITIONS_ALL="92600" ### axis 6
+
+#declare -A XPOSITIONS_ALL_SENSOR
+#declare -A YPOSITIONS_ALL_SENSOR
+#declare -A ZPOSITIONS_ALL_SENSOR
+
+#declare -A XPOSITIONS_GOLD_SENSOR
+#declare -A YPOSITIONS_GOLD_SENSOR
+#declare -A ZPOSITIONS_GOLD_SENSOR
+
+#XPOSITIONS_ALL_SENSOR["A1"]="90200 96200"                   ### axis 4 (A1)
+#YPOSITIONS_ALL_SENSOR["A1"]="39500 42500 45500 48500 51500" ### axis 5 (A1)
+#ZPOSITIONS_ALL_SENSOR["A1"]="92600"                         ### axis 6 (A1)
+
+#XPOSITIONS_ALL_SENSOR["B1"]="90200 96200"                   ### axis 4 (B1)
+#YPOSITIONS_ALL_SENSOR["B1"]="22500 25500 28500 31500 34500" ### axis 5 (B1)
+#ZPOSITIONS_ALL_SENSOR["B1"]="92600"                         ### axis 6 (B1)
+
+#XPOSITIONS_ALL_SENSOR["C1"]="90200 96200"                   ### axis 4 (C1)
+#YPOSITIONS_ALL_SENSOR["C1"]="5500 8500 11500 14500 17500"   ### axis 5 (C1)
+#ZPOSITIONS_ALL_SENSOR["C1"]="93000"                         ### axis 6 (C1)
+
+#XPOSITIONS_ALL_SENSOR["A2"]="73200 79200"                   ### axis 4 (A2)
+#YPOSITIONS_ALL_SENSOR["A2"]="39500 42500 45500 48500 51500" ### axis 5 (A2)
+#ZPOSITIONS_ALL_SENSOR["A2"]="92600"                         ### axis 6 (A2)
+
+#XPOSITIONS_ALL_SENSOR["B2"]="73200 79200"                   ### axis 4 (B2)
+#YPOSITIONS_ALL_SENSOR["B2"]="22500 25500 28500 31500 34500" ### axis 5 (B2)
+#ZPOSITIONS_ALL_SENSOR["B2"]="92600"                         ### axis 6 (B2)
 
 NREPEAT_GOLD=50
-XPOSITIONS_GOLD="96200" ### axis 4
-YPOSITIONS_GOLD="51500" ### axis 5
-ZPOSITIONS_GOLD="92600" ### axis 6
 
-POSITIONS=ALL
+#XPOSITIONS_GOLD_SENSOR["A1"]="95600" ### axis 4 (A1)
+#YPOSITIONS_GOLD_SENSOR["A1"]="50600" ### axis 5 (A1)
+#ZPOSITIONS_GOLD_SENSOR["A1"]="92600" ### axis 6 (A1)
+
+#XPOSITIONS_GOLD_SENSOR["B1"]="90200" ### axis 4 (B1)
+#YPOSITIONS_GOLD_SENSOR["B1"]="22500" ### axis 5 (B1)
+#ZPOSITIONS_GOLD_SENSOR["B1"]="92600" ### axis 6 (B1)
+
+#declare -A VBRK_AT20C_SENSOR
+#declare -A VBRK_COEFF_SENSOR
+
+#VBRK_AT20C_SENSOR["A1"]="51.3"
+#VBRK_COEFF_SENSOR["A1"]="0.05"
+
+#VBRK_AT20C_SENSOR["B1"]="50.9"
+#VBRK_COEFF_SENSOR["B1"]="0.05"
+
+BOARD=${EMMI_BOARD}
+SENSOR=${EMMI_SENSOR}
+POSITIONS=${EMMI_POSITIONS}
 
 RMRAW=true
 LIGHTONLY=false
 TELEGRAM=true
 RUNNAME=$(date +%Y%m%d-%H%M%S)
 
-TEMPS=(17.0 19.0 21.0 23.0)
-VBRKS=(51.1 51.2 51.3 51.4) ### breakdown voltage
+TEMPS="16.0 18.0 20.0 22.0 24.0"
+#VBRKS=(51.1 51.2 51.3 51.4 51.5) ### breakdown voltage A1
+#VBRKS=(50.7 50.8 50.9 51.0 51.1) ### breakdown voltage B1
 
-VOVERS="9"
+VOVERS="7"
 
 ### externals
 
+BOARD=${EMMI_BOARD:-$BOARD}
+SENSOR=${EMMI_SENSOR:-$SENSOR}
+
+#XPOSITIONS_ALL=${XPOSITIONS_ALL_SENSOR[${SENSOR}]}
+#YPOSITIONS_ALL=${YPOSITIONS_ALL_SENSOR[${SENSOR}]}
+#ZPOSITIONS_ALL=${ZPOSITIONS_ALL_SENSOR[${SENSOR}]}
+
+#XPOSITIONS_GOLD=${XPOSITIONS_GOLD_SENSOR[${SENSOR}]}
+#YPOSITIONS_GOLD=${YPOSITIONS_GOLD_SENSOR[${SENSOR}]}
+#ZPOSITIONS_GOLD=${ZPOSITIONS_GOLD_SENSOR[${SENSOR}]}
+
+#VBRK_AT20C=${VBRK_AT20C_SENSOR[${SENSOR}]}
+#VBRK_COEFF=${VBRK_COEFF_SENSOR[${SENSOR}]}
+
+VBRK_AT20C=$(/emmi/measure/vbreaks.sh /emmi/measure/vbreaks.txt ${BOARD} ${SENSOR} at20c)
+VBRK_COEFF=$(/emmi/measure/vbreaks.sh /emmi/measure/vbreaks.txt ${BOARD} ${SENSOR} coeff)
+
+TEMPS=${EMMI_TEMPS:-$TEMPS}
 VOVERS=${EMMI_VOVERS:-$VOVERS}
 
 POSITIONS=${EMMI_POSITIONS:-$POSITIONS}
-for VAR in XPOSITIONS YPOSITIONS ZPOSITIONS NREPEAT; do
+
+#for VAR in XPOSITIONS YPOSITIONS ZPOSITIONS NREPEAT; do
+for VAR in NREPEAT; do
     SRC="${VAR}_${POSITIONS}"
     eval "$VAR=\"\${$SRC}\""
 done
+
+XPOSITIONS=$(/emmi/measure/positions.sh /emmi/measure/positions.txt ${BOARD} ${SENSOR} ${POSITIONS} x)
+YPOSITIONS=$(/emmi/measure/positions.sh /emmi/measure/positions.txt ${BOARD} ${SENSOR} ${POSITIONS} y)
+ZPOSITIONS=$(/emmi/measure/positions.sh /emmi/measure/positions.txt ${BOARD} ${SENSOR} ${POSITIONS} z)
 
 NREPEAT=${EMMI_NREPEAT:-$NREPEAT}
 LIGHTONLY=${EMMI_LIGHTONLY:-$LIGHTONLY}
@@ -52,8 +118,12 @@ RMRAW=${EMMI_RMRAW:-$RMRAW}
 
 ### hacks
 
-TEMPS=(20.0)
-VBRKS=(51.3) ### breakdown voltage
+#TEMPS=(20.0)
+#VBRKS=(51.3) ### breakdown voltage A1
+#VBRKS=(50.9) ### breakdown voltage B1
+#VBRKS=(38.7) ### breakdown voltage C1
+#VBRKS=(51.3) ### breakdown voltage A2
+#VBRKS=(50.9) ### breakdown voltage B2
 
 ### splash
 
@@ -68,12 +138,18 @@ splash() {
     echo " EXPOSURE: ${EXPOSURE} "
     echo " NFRAMES: ${NFRAMES} "
     echo
+    echo " BOARD: ${BOARD} "
+    echo " SENSOR: ${SENSOR} "
+    echo " POSITIONS: ${POSITIONS} "
+    echo
+    echo " VBRK_AT20C: ${VBRK_AT20C} "
+    echo " VBRK_COEFF: ${VBRK_COEFF} "
+    echo
     echo " XPOSITIONS: ${XPOSITIONS} "
     echo " YPOSITIONS: ${YPOSITIONS} "
     echo " ZPOSITIONS: ${ZPOSITIONS} "
     echo
     echo " TEMPS: ${TEMPS} "
-    echo " VBRKS: ${VBRKS} "
     echo " VOVERS: ${VOVERS} "
     echo
     echo " NREPEAT: ${NREPEAT} "
@@ -82,7 +158,6 @@ splash() {
     echo " RMRAW: ${RMRAW} "
     echo 
     echo
-    
 }
 
 ### functions
@@ -171,6 +246,12 @@ vbias_off() {
     echo "OP1 0;*OPC?" | nc -w1 -W1 10.0.8.10 9221 &> /dev/null
 }
 
+update_tset() {
+    tset=$1
+    echo " --- update tset: ${tset} "
+    /emmi/system/peltier/update-tset.sh ${TEMP} && sleep ${TSLEEP}
+}
+
 measure_1() {
 
     ### protection
@@ -219,20 +300,25 @@ measure_1() {
 		    rm ${PEDESTAL}.tif ${LIGHT}.stack.tif
 		[ $TELEGRAM = true ] && telegram_image ${LIGHT}.tif 
 		light_off && sleep ${LSLEEP}
+
+   		[ -f ".breakloop" ] && break		    
 		
 		[ ${LIGHTONLY} = true ] && continue
 				
 		### loop over temperature
-		for i in "${!TEMPS[@]}"; do
-		    TEMP="${TEMPS[$i]}"
-		    VBRK="${VBRKS[$i]}"
+		for TEMP in ${TEMPS}; do
 
-		    /home/eic/CERNIA/peltier/update-tset.sh ${TEMP} && sleep ${TSLEEP}
+		    VBRK=$(echo "${VBRK_AT20C} + ${VBRK_COEFF} * (${TEMP} - 20)" | bc -l)
+		    VBRK=$(printf "%.1f" "$VBRK")
+
+		    update_tset ${TEMP}
 
 		    ### loop over overvoltages
 		    for VOVER in ${VOVERS}; do
 
-			VOLT=$(echo "scale=1; ${VBRK} + ${VOVER}" | bc -l)
+			VOLT=$(echo "${VBRK} + ${VOVER}" | bc -l)
+			VOLT=$(printf "%.1f" "$VOLT")
+
 			vbias_set ${VOLT}
 		    
 			### get ready to measure
@@ -312,13 +398,17 @@ measure_1() {
     ### end of loop over x positions
 
     ### create RAW tarball 
-    [ $RMRAW = true ] || tar zcvf RAW.tgz RAW
+#    [ $RMRAW = true ] || tar zcvf RAW.tgz RAW
     
     echo " --- all done, so long "
     
 }
 
 ### create data directory
+
+#splash
+#echo " --- this was a debug test "
+#exit 0
 
 mkdir -p ${DDIR}/${RUNNAME}
 
