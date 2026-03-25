@@ -9,6 +9,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='Process an EMMI image')
     parser.add_argument('--input', type=str, required=True, help='Input TIF filename')
     parser.add_argument('--output', type=str, required=False, help='Output PNG filename')
+    parser.add_argument('--original', action='store_true', help='Display image')
     parser.add_argument('--display', action='store_true', help='Display image')
     parser.add_argument('--colorbar', action='store_true', help='Display image')
     parser.add_argument('--tightlayout', action='store_true', help='Display image')
@@ -28,7 +29,8 @@ if __name__ == "__main__":
 
     print(' --- opening input image:', args.input)
     image = skimage.io.imread(args.input)
-    image = contrast_stretching(image)
+    if not args.original:
+        image = contrast_stretching(image)
     
     plt.figure(figsize=(10, 5))
     plt.imshow(image, cmap=args.cmap, vmin=args.vmin, vmax=args.vmax)
