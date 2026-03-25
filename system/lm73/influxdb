@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-data_file="/tmp/lm73.txt"
+data_file="/run/emmi/lm73/temp"
 initial_time=0
 
 while true; do
@@ -15,7 +15,7 @@ while true; do
 
     ### update 
     temp=$(cat ${data_file} | awk {'print $2'})
-    data="cernia,device=lm73,name=temperature value=${temp}"
-    /emmi/influxdb/influx_write.sh "${data}"
+    data="emmi,device=lm73,name=temperature value=${temp}"
+    /emmi/influxdb/write "${data}"
 
 done
