@@ -1,0 +1,131 @@
+#! /usr/bin/env bash
+set -euo pipefail
+
+### allow batch processing and plotting at the same time
+export PYTHONUNBUFFERED=1
+export MPLBACKEND=Agg
+
+board="HAMA3"
+nmeas=9
+hold=60
+
+if [ $# -ne 3 ]; then
+    echo " usage: $0 [serial] [channel] [temps]"
+    exit 1
+fi
+serial=$1
+channel=$2
+temps=$3
+
+### execute this code at exit
+trap atexit EXIT
+atexit() {
+    systemctl start emmi-keithley-server.service
+}
+
+main() {
+
+    create_config_keithley
+
+    ### switch off light, moving stage and keithley server
+    /emmi/system/gude/switch light off
+    /emmi/system/gude/switch moving off
+    systemctl stop emmi-keithley-server.service
+
+    ### loop over temperatures
+    for temp in ${temps}; do
+
+	### change peltier set point temperature
+	echo " --- temperature: ${temp} C " | tee -a peltier.log
+	date | tee -a peltier.log
+	/emmi/system/peltier/tset ${temp} | tee -a peltier.log
+	/emmi/system/peltier/wait ${hold} | tee -a peltier.log
+
+	### measure IV characteristics
+	echo " --- temperature: ${temp} C " | tee -a measure.log
+	date | tee -a measure.log
+	measure ${serial} ${channel} | tee -a measure.log
+	
+    done
+
+    make_vbreak
+}
+
+make_vbreak() {
+    cp /emmi/measure/ivscan/{makeiv,graphutils,ivscan_vbreak}.C .
+    root -b -q -l "ivscan_vbreak.C({$(echo $temps | tr " " ",")})"
+}
+
+measure() {
+
+    serial=$1
+    channel=$2
+    temp=$(cat /run/emmi/peltier/tset)
+    tempK=$(echo "scale=0; (${temp} + 273)/1" | bc -l)
+
+    ### zero offset
+    /emmi/measure/ivscan/zero \
+	--temperature $tempK \
+	--nmeas $nmeas \
+	--board $board \
+	--serial $serial \
+	--channel $channel
+#    telegram_picture.sh ${board}_sn${serial}_${tempK}K_${channel}.zero.png ${board}_sn${serial}_${tempK}K_${channel}.zero.png
+    
+    ### IV scan
+    /emmi/measure/ivscan/ivscan \
+	--vstep 0.1 \
+	--temperature $tempK \
+	--nmeas $nmeas \
+	--board $board \
+	--serial $serial \
+	--channel $channel
+#    telegram_picture.sh ${board}_sn${serial}_${tempK}K_${channel}.ivscan.png ${board}_sn${serial}_${tempK}K_${channel}.ivscan.png
+
+    ### IV scan - zoomed breakdown
+    /emmi/measure/ivscan/ivscan \
+	--notes "zoom" \
+	--vstep 0.05 \
+	--temperature $tempK \
+	--nmeas $nmeas \
+	--board $board \
+	--serial $serial \
+	--channel $channel \
+	--vbelow 2 \
+	--vabove 2
+#    telegram_picture.sh ${board}_sn${serial}_${tempK}K_${channel}.ivscan.png ${board}_sn${serial}_${tempK}K_${channel}.ivscan.png
+
+}
+
+create_config_keithley()
+{
+cat <<EOF > config.keithley
+SYST:RSEN OFF
+ROUT:TERM FRONT
+
+SENS:FUNC "CURR"
+SENS:CURR:AZER ON
+SENS:CURR:NPLC 1.
+SENS:CURR:RANG:AUTO ON
+SENS:CURR:AVER:COUNT 1
+SENS:CURR:AVER:TCON REP
+SENS:CURR:AVER ON
+
+SOUR:FUNC VOLT
+SOUR:VOLT:READ:BACK OFF
+SOUR:VOLT:DEL:AUTO ON
+#SOUR:VOLT:RANG:AUTO ON
+SOUR:VOLT:RANG 200
+SOUR:VOLT:ILIM 25.e-6
+EOF
+}
+
+run="$(date +%Y%m%d-%H%M%S)-${board}-sn${serial}-${channel}"
+dir="${HOME}/DATA/EMMI/ivscan/${run}"
+mkdir -p ${dir}
+cd ${dir}
+    
+{ time -p main | tee run-ivscan.log; } 2>&1
+
+cd -
+
