@@ -3,11 +3,14 @@ import os
 #import numpy as np
 
 def convert_string(s: str):
-    if s.isdigit():
+    try:
         return int(s)
-    elif s.replace('.', '', 1).isdigit() and s.count('.') == 1:
+    except ValueError:
+        pass
+
+    try:
         return float(s)
-    else:
+    except ValueError:
         return s
 
 def build_database(pattern):
@@ -30,9 +33,15 @@ def build_database(pattern):
         database.append(dbentry)
     return database
 
-def build_coordinates(database):
-    x_vals = sorted({d['x'] for d in database if 'x' in d}, reverse=True) # if 'x' in d})
-    y_vals = sorted({d['y'] for d in database if 'y' in d}, reverse=True) # if 'y' in d})
+def build_coordinates(database, coordinate_system="mm"):
+    if coordinate_system == "encoder":
+        x_vals = sorted({d['x'] for d in database if 'x' in d}, reverse=True)
+        y_vals = sorted({d['y'] for d in database if 'y' in d}, reverse=True)
+    elif coordinate_system == "mm":
+        x_vals = sorted({float(d['x']) for d in database if 'x' in d}, reverse=True)
+        y_vals = sorted({float(d['y']) for d in database if 'y' in d}, reverse=True)
+    else:
+        raise ValueError(f'unknown coordinate_system: {coordinate_system}')
     coords = [ [ (y, x) for x in x_vals ] for y in y_vals ]
     return coords
 

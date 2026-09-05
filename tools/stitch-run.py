@@ -5,11 +5,15 @@ import argparse
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 
+ENC2PIX = 844. / 5000.  # enc2pix: encoder counts to image pixels
+MM2PIX = 793.6508       # mm2pix: millimeters to image pixels
+
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('--input', type=str, required=True, help='Wildcard pattern (e.g. \'./data/*.txt\')')
     parser.add_argument('--output', type=str, required=False, help='Output file tagname')
     parser.add_argument('--tags', type=str, nargs='+', required=True, help='Data tags to process')
+    parser.add_argument('--coordinate-system', choices=('encoder', 'mm'), default='mm', help='Coordinate system used in input filenames')
     parser.add_argument('--display', action='store_true', help='Display stitching process')
     parser.add_argument('--final', action='store_true', help='Display final image')
     return parser.parse_args()
@@ -55,18 +59,23 @@ def crop_images(image1, image2, seed):
 
     return image1, image2
 
-def measure_shift(first, second):
+def measure_shift(first, second, coordinate_system="mm"):
     pos1, image1 = first
     pos2, image2 = second
-#    eshift = (pos1 - pos2) * 844. / 5000.
-    exshift = int ( (pos1[0] - pos2[0]) * 844. / 5000. )
-    eyshift = int ( (pos1[1] - pos2[1]) * 844. / 5000. )
+    if coordinate_system == "encoder":
+        coord2pix = ENC2PIX
+    elif coordinate_system == "mm":
+        coord2pix = MM2PIX
+    else:
+        raise ValueError(f'unknown coordinate_system: {coordinate_system}')
+    exshift = int ( (pos1[0] - pos2[0]) * coord2pix )
+    eyshift = int ( (pos1[1] - pos2[1]) * coord2pix )
     eshift = (exshift, eyshift)
     image1, image2 = crop_images(image1, image2, eshift)
     shift = eshift + emmi.stitching.phase_correlate(image1, image2)
     return shift
 
-def measure_shifts(image_data):
+def measure_shifts(image_data, coordinate_system="mm"):
     shifts = {}
     if len(image_data) < 2:
         print(' --- measure_shifts requires at least two images')
@@ -74,7 +83,7 @@ def measure_shifts(image_data):
     for first, second in zip(image_data, image_data[1:]):
         pos1, image1 = first
         pos2, image2 = second
-        shift = measure_shift(first, second)
+        shift = measure_shift(first, second, coordinate_system=coordinate_system)
         shifts[(pos1, pos2)] = shift
     return shifts
 
@@ -98,7 +107,7 @@ if __name__ == "__main__":
 
     # build database and coordinates
     database = emmi.database.build_database(args.input)
-    coords = emmi.database.build_coordinates(database)
+    coords = emmi.database.build_coordinates(database, coordinate_system=args.coordinate_system)
 
     tags = {'light'}
     tags.update(args.tags)
@@ -126,7 +135,7 @@ if __name__ == "__main__":
         # loop until we are left with only one image in the list
         while len(row_data['light']) > 1:
             # measure shifts with light data
-            shifts = measure_shifts(row_data['light'])
+            shifts = measure_shifts(row_data['light'], coordinate_system=args.coordinate_system)
             # stitch images of all tags
             for tag in tags:
                 row_data[tag] = stitch_images(row_data[tag], shifts, display=args.display, panorama=(True,False))
@@ -140,7 +149,7 @@ if __name__ == "__main__":
     # loop until we are left with only one image in the list
     while len(stitched_row_data['light']) > 1:
         # measure shifts with light
-        shifts = measure_shifts(stitched_row_data['light'])        
+        shifts = measure_shifts(stitched_row_data['light'], coordinate_system=args.coordinate_system)
         # stitch images of all tags
         for tag in tags:
             stitched_row_data[tag] = stitch_images(stitched_row_data[tag], shifts, display=args.display, panorama=(False,True))
@@ -161,4 +170,3 @@ if __name__ == "__main__":
             plt.axis('off')
             plt.tight_layout()
             plt.show()
-
