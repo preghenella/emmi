@@ -1,2 +1,6 @@
 *~
+*.tif
+*.png
+*.root
+data
 __pycache__
