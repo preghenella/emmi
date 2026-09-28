@@ -1,7 +1,7 @@
 #! /usr/bin/env bash
 
 emmi="/home/preghenella/EIC/emmi"
-options="remove_column_bias remove_hot_pixels"
+options="remove_column_bias remove_hot_pixels remove_cold_pixels"
 
 if [ $# -ne 1 ]; then
     echo " usage: $0 [dirname] "
