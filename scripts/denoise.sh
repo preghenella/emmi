@@ -1,6 +1,7 @@
 #! /usr/bin/env bash
 
-emmi="/home/preghenella/EIC/emmi"
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+emmi=$(cd -- "${script_dir}/.." && pwd)
 options="remove_column_bias remove_hot_pixels remove_cold_pixels"
 
 if [ $# -ne 1 ]; then
@@ -9,11 +10,11 @@ if [ $# -ne 1 ]; then
 fi
 dirname=$1
 
-for I in ${dirname}/*data=diff.tif; do
+for I in "${dirname}"/*data=diff.tif; do
 
     tagname=${I%diff.tif};
     outname=${tagname}diff-denoised.tif
     echo " --- denoise image: ${I} "
-    ${emmi}/tools/process-image.py --input ${I} --output ${outname} --process ${options}
+    "${emmi}/tools/process-image.py" --input "${I}" --output "${outname}" --process ${options}
 
 done
